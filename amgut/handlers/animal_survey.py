@@ -3,19 +3,167 @@ from json import loads
 
 from tornado.web import authenticated
 from tornado.websocket import WebSocketHandler
+from wtforms.form import Form
+from wtforms.fields import (StringField, SelectField, BooleanField,
+                            TextAreaField, IntegerField, FieldList)
 
 from amgut.handlers.base_handlers import BaseHandler
 from amgut.util import AG_DATA_ACCESS
 
+class AnimalSurveyForm(Form):
+    # General
+    Name = StringField("Name")
+    AnimalType = SelectField("Animal type", choices=[
+        ("", "Select an option"),
+        ("Dog", "Dog"),
+        ("Cat", "Cat"),
+        ("Small mammal", "Small mammal"),
+        ("Large mammal", "Large mammal"),
+        ("Fish", "Fish"),
+        ("Bird", "Bird"),
+        ("Reptile", "Reptile"),
+        ("Amphibian", "Amphibian"),
+        ("Other", "Other")])
+
+    Origin = SelectField("Origin", choices=[
+        ("", "Select an option"),
+        ("Breeder", "Breeder"),
+        ("Shelter", "Shelter"),
+        ("Home", "Home"),
+        ("Wild", "Wild")])
+
+    Age = IntegerField("Age")
+    Gender = SelectField("Gender", choices=[
+        ("", "Select an option"),
+        ("Male", "Male"),
+        ("Female", "Female"),
+        ("Unknown", "Unknown")])
+
+    Setting = SelectField("Setting", choices=[
+        ("", "Select an option"),
+        ("Urban", "Urban"),
+        ("Suburban", "Suburban"),
+        ("Rural", "Rural")])
+
+    Weight = SelectField("Weight Category", choices=[
+        ("", "Select an option"),
+        ("Underweight", "Underweight"),
+        ("Skinny", "Skinny"),
+        ("Normal", "Normal"),
+        ("Chubby", "Chubby"),
+        ("Overweight", "Overweight")])
+
+    # Diet
+    Diet = SelectField("Diet Classification", choices=[
+        ("", "Select an option"),
+        ("Carnivore", "Carnivore"),
+        ("Omnivore", "Omnivore"),
+        ("Herbivore", "Herbivore")])
+
+    FoodSourceStore = BooleanField("Eats store-bought food")
+    FoodSourceHuman = BooleanField("Eats human food")
+    FoodSourceWild = BooleanField("Eats wild food")
+    FoodType = SelectField(label="Food Type", choices=[
+        ("", "Select an option"),
+        ("dry", "Dry"),
+        ("wet", "Wet"),
+        ("both", "Both")])
+
+    FoodAttrOrganic = BooleanField("Food is organic")
+    FoodAttrGrainFree = BooleanField("Food is grain-free")
+
+    # Social
+    LivingStatus = SelectField("Living Status", choices=[
+        ("", "Select an option"),
+        ("Lives alone with humans", "Lives alone with humans"),
+        ("Lives alone no/limited humans (shelter)",
+         "Lives alone no/limited humans (shelter)"),
+        ("Lives with other animals and humans",
+         "Lives with other animals and humans"),
+        ("Lives with other animals/limited humans",
+         "Lives with other animals/limited humans")])
+
+    AdditionalPets = FieldList(
+        SelectField("Additional Pet Type", choices=[
+            ("", "Select an option"),
+            ("Dog", "Dog"),
+            ("Cat", "Cat"),
+            ("Small mammal", "Small mammal"),
+            ("Large mammal", "Large mammal"),
+            ("Fish", "Fish"),
+            ("Bird", "Bird"),
+            ("Reptile", "Reptile"),
+            ("Amphibian", "Amphibian"),
+            ("Other", "Other")]))
+
+    AdditionalHumanAges = FieldList(
+        IntegerField("Age"))
+
+    AdditionalHumanSexes = FieldList(
+        SelectField("Sex", choices=[
+            ("Select an option", "Select an option"),
+            ("Male", "Male"),
+            ("Female", "Female"),
+            ("Other", "Other")]))
+
+    HoursOutside = SelectField("Hours Spent Outside", choices=[
+        ("", "Select an option"),
+        ("none", "None"),
+        ("1", "Less than 2"),
+        ("2-4", "2-4"),
+        ("4-8", "4-8"),
+        ("8+", "8+")])
+
+    ToiletAccess = SelectField("Toilet Water Access", choices=[
+        ("", "Select an option"),
+        ("regular", "Regular"),
+        ("sometimes", "Sometimes"),
+        ("never", "Never")])
+
+    Coprophage = SelectField("Coprophage", choices=[
+        ("", "Select an option"),
+        ("high", "High"),
+        ("moderate", "Moderate"),
+        ("low", "Low"),
+        ("never", "Never")])
+
+    # "About yourself"
+    AnythingElse = TextAreaField("Please write anything else about this "
+                                 "animal that you think might affect its "
+                                 "microorganisms.")
+
+    def getGeneralSection(self):
+        return [self.Name, self.AnimalType, self.Origin, self.Age,
+                self.Gender, self.Setting, self.Weight]
+
+    def getDietSection(self):
+        return [self.Diet, self.FoodSourceStore, self.FoodSourceHuman,
+                self.FoodSourceWild, self.FoodType,
+                self.FoodAttrOrganic, self.FoodAttrGrainFree]
+
+    def getSocialSection(self):
+        return ([self.LivingStatus, self.HoursOutside, self.ToiletAccess,
+                self.Coprophage],
+                self.AdditionalPets, self.AdditionalHumanAges,
+                self.AdditionalHumanSexes)
 
 class AnimalSurveyHandler(BaseHandler):
     @authenticated
     def get(self):
         skid = self.current_user
-        self.render('animal_survey.html', message='', skid=skid)
+        theForm = AnimalSurveyForm()
+        theForm.AdditionalPets.append_entry()
+        theForm.AdditionalHumanAges.append_entry()
+        theForm.AdditionalHumanSexes.append_entry()
+        self.render('animal_survey.html', message='', skid=skid,
+                    theForm=theForm)
 
     @authenticated
     def post(self):
+        theForm = AnimalSurveyForm(data=self.request.arguments)
+        
+    @authenticated
+    def post_old(self):
         skid = self.current_user
         participant_name = self.get_argument('animal_name')
 
@@ -32,7 +180,8 @@ class AnimalSurveyHandler(BaseHandler):
                                               default=None)
         singles['food_source_human'] = self.get_argument('food_source_human',
                                               default=None)
-        singles['food_source_wild'] = self.get_argument('food_source_wild', default=None)
+        singles['food_source_wild'] = self.get_argument('food_source_wild',
+                                                        default=None)
         singles['food_type'] = self.get_argument('food_type', default=None)
         singles['organic_food'] = self.get_argument('organic_food',
                                                     default=None)

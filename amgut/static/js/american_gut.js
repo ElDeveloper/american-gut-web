@@ -37,6 +37,8 @@ function GetXmlHttpObject()
  }
 
 var old_field_number = 1
+var pet_field_number = 0
+var human_field_number = 0
 
 function addThreeFields(field_name) {
 	var new_field_number = old_field_number+1
@@ -309,27 +311,27 @@ function setMultiplesDefaults_select(form_name, new_field_names, hits) {
 }
 
 function addHuman() {
-	field_name = "human"
-	var new_field_number = old_field_number+1
-	old_field_number = new_field_number
-	var newinput = '<div id="'+field_name+'_'+new_field_number+'"><input type="text" class="small_text" value="Age" name="'+field_name+'_'+new_field_number+'_age" id="'+field_name+'_'+new_field_number+'_age" onkeypress="validateNumber(event, false)"> years <br /><select name="'+field_name+'_'+new_field_number+'_sex" id="'+field_name+'_'+new_field_number+'_sex"><option value="">Select an option</option><option>Male</option><option>Female</option><option>Other</option></select><a class="remove_field" href="#" onclick="removeField(\''+field_name+'_'+new_field_number+'\')" title="Remove this pet">x</a></input></div>'
+	field_name = "AdditionalHuman"
+	var new_human_field_number = human_field_number+1
+	var newinput = '<div id="'+field_name+'-'+new_human_field_number+'"><ul><li>Age <input type="text" class="small_text" name="'+field_name+'Ages-'+new_human_field_number+'" id="'+field_name+'Ages-'+new_human_field_number+'" onkeypress="validateNumber(event, false)"/></li></ul> <ul><li>Sex <select name="'+field_name+'Sexes-'+new_human_field_number+'" id="'+field_name+'Sexes-'+new_human_field_number+'"><option value="">Select an option</option><option>Male</option><option>Female</option><option>Other</option></select><a class="remove_field" href="#" onclick="removeField(\''+field_name+'-'+new_human_field_number+'\')" title="Remove this human">Remove this human</a></li></ul></div>'
 	var newTextBoxDiv = $(document.createElement('div'))
-	     .attr("id", field_name+'_'+new_field_number);
+	     .attr("id", field_name+'_'+new_human_field_number);
 	newTextBoxDiv.after().html(newinput);
 	newTextBoxDiv.appendTo('#'+field_name);
 	setDefaultText()
+	human_field_number = new_human_field_number
 }
 
 function addPet() {
-	field_name = "pet"
-	var new_field_number = old_field_number+1
-	old_field_number = new_field_number
-	var newinput = '<div id="'+field_name+'_'+new_field_number+'"><select name="'+field_name+'_'+new_field_number+'" id="'+field_name+'_'+new_field_number+'"><option value="">Select an option</option><option>Dog</option><option>Cat</option><option>Small mammal</option><option>Large mammal</option><option>Fish</option><option>Bird</option><option>Reptile</option><option>Amphibian</option><option>Other</option></select><a class="remove_field" href="#" onclick="removeField(\''+field_name+'_'+new_field_number+'\')" title="Remove this pet">x</a></input></div>'
+    var new_pet_field_number = pet_field_number + 1
+	field_name = "AdditionalPets"
+	var newinput = '<div id="'+field_name+'-'+new_pet_field_number+'"><ul><li>Additional Pet Type <select name="'+field_name+'-'+new_pet_field_number+'" id="'+field_name+'-'+new_pet_field_number+'"><option value="">Select an option</option><option>Dog</option><option>Cat</option><option>Small mammal</option><option>Large mammal</option><option>Fish</option><option>Bird</option><option>Reptile</option><option>Amphibian</option><option>Other</option></select><a class="remove_field" href="#" onclick="removeField(\''+field_name+'-'+new_pet_field_number+'\')" title="Remove this animal">Remove this animal</a></li></ul></div>'
 	var newTextBoxDiv = $(document.createElement('div'))
-	     .attr("id", field_name+'_'+new_field_number);
+	     .attr("id", field_name+'-'+new_pet_field_number);
 	newTextBoxDiv.after().html(newinput);
 	newTextBoxDiv.appendTo('#'+field_name);
 	setDefaultText()
+	pet_field_number = new_pet_field_number
 }
 
 function removeField(item_id) {
