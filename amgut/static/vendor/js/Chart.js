@@ -1,4 +1,3 @@
-console.log('dank memes');
 /*!
  * Chart.js
  * http://chartjs.org/

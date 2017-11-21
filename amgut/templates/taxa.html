@@ -4,9 +4,21 @@
 {% set tl = text_locale['taxa.html'] %}
   <script src="/static/vendor/js/Chart.js"></script>
   <script src="/static/vendor/js/chroma.min.js"></script>
+  <script src="/static/vendor/js/require-2.1.22.min.js"></script>
   <script src="/static/js/interactive.js"></script>
+
+  <!-- emperor css -->
+  <link id="emperor-css" rel="stylesheet" type="text/css" href="/static/emperor/css/emperor.css">
+  <link rel="stylesheet" type="text/css" href="/static/emperor/vendor/css/jquery-ui.min.css">
+  <link rel="stylesheet" type="text/css" href="/static/emperor/vendor/css/slick.grid.min.css">
+  <link rel="stylesheet" type="text/css" href="/static/emperor/vendor/css/spectrum.min.css">
+  <link rel="stylesheet" type="text/css" href="/static/emperor/vendor/css/chosen.min.css">
+  <link rel="stylesheet" type="text/css" href="/static/emperor/vendor/css/jquery.contextMenu.min.css">
+
+
   <script type="text/javascript">
     //Raw taxa summary data
+    var BARCODES = {% raw [b['barcode'] for b in barcodes] %};
     var barChartSummaryData = {
       labels: {% raw [b['barcode'] for b in barcodes] %},
       rawLabels: null,
@@ -17,7 +29,7 @@
     var barChartFoldData = {
       labels: [],
       datasets: [],
-      barcodes: {% raw [b['barcode'] for b in barcodes] %},
+      barcodes: BARCODES,
       titles: {% raw titles %}
     };
     // These two variables should be arguments of buildCats(), not global variables
@@ -276,7 +288,155 @@ window.onload = function() {
   $("#meta-cat").prop("disabled", true);
   $("#add-sumary-cat").prop("disabled", true);
 };
+
+requirejs.config({
+// the left side is the module name, and the right side is the path
+// relative to the baseUrl attribute, do NOT include the .js extension
+'paths': {
+  /* jQuery */
+  'jquery': '/static/emperor/vendor/js/jquery-2.1.4.min',
+  'jqueryui': '/static/emperor/vendor/js/jquery-ui.min',
+  'jquery_drag': '/static/emperor/vendor/js/jquery.event.drag-2.2.min',
+
+  /* jQuery plugins */
+  'chosen': '/static/emperor/vendor/js/chosen.jquery.min',
+  'spectrum': '/static/emperor/vendor/js/spectrum.min',
+  'position': '/static/emperor/vendor/js/jquery.ui.position.min',
+  'contextmenu': '/static/emperor/vendor/js/jquery.contextMenu.min',
+
+  /* other libraries */
+  'underscore': '/static/emperor/vendor/js/underscore-min',
+  'chroma': '/static/emperor/vendor/js/chroma.min',
+  'filesaver': '/static/emperor/vendor/js/FileSaver.min',
+  'blob': '/static/emperor/vendor/js/Blob',
+  'canvastoblob': '/static/emperor/vendor/js/canvas-toBlob',
+  'd3': '/static/emperor/vendor/js/d3.min',
+
+  /* THREE.js and plugins */
+  'three': '/static/emperor/vendor/js/three.min',
+  'orbitcontrols': '/static/emperor/vendor/js/three.js-plugins/OrbitControls',
+  'projector': '/static/emperor/vendor/js/three.js-plugins/Projector',
+  'svgrenderer': '/static/emperor/vendor/js/three.js-plugins/SVGRenderer',
+  'canvasrenderer': '/static/emperor/vendor/js/three.js-plugins/CanvasRenderer',
+
+  /* SlickGrid */
+  'slickcore': '/static/emperor/vendor/js/slick.core.min',
+  'slickgrid': '/static/emperor/vendor/js/slick.grid.min',
+  'slickformatters': '/static/emperor/vendor/js/slick.editors.min',
+  'slickeditors': '/static/emperor/vendor/js/slick.formatters.min',
+
+  /* Emperor's objects */
+  'util': '/static/emperor/js/util',
+  'model': '/static/emperor/js/model',
+  'view': '/static/emperor/js/view',
+  'controller': '/static/emperor/js/controller',
+  'draw': '/static/emperor/js/draw',
+  'scene3d': '/static/emperor/js/sceneplotview3d',
+  'shapes': '/static/emperor/js/shapes',
+  'animationdirector': '/static/emperor/js/animate',
+  'trajectory': '/static/emperor/js/trajectory',
+
+  /* controllers */
+  'abcviewcontroller': '/static/emperor/js/abc-view-controller',
+  'viewcontroller': '/static/emperor/js/view-controller',
+  'colorviewcontroller': '/static/emperor/js/color-view-controller',
+  'visibilitycontroller': '/static/emperor/js/visibility-controller',
+  'opacityviewcontroller': '/static/emperor/js/opacity-view-controller',
+  'scaleviewcontroller': '/static/emperor/js/scale-view-controller',
+  'shapecontroller': '/static/emperor/js/shape-controller',
+  'axescontroller': '/static/emperor/js/axes-controller',
+  'animationscontroller': '/static/emperor/js/animations-controller',
+
+  /* editors */
+  'shape-editor': '/static/emperor/js/shape-editor',
+  'color-editor': '/static/emperor/js/color-editor',
+  'scale-editor': '/static/emperor/js/scale-editor'
+
+},
+/*
+   Libraries that are not AMD compatible need shim to declare their
+   dependencies.
+ */
+'shim': {
+  'jquery_drag': {
+    'deps': ['jquery', 'jqueryui']
+  },
+  'chosen': {
+    'deps': ['jquery'],
+    'exports': 'jQuery.fn.chosen'
+  },
+  'contextmenu' : {
+    'deps': ['jquery', 'jqueryui', 'position']
+  },
+  'filesaver' : {
+    'deps': ['blob']
+  },
+  'canvastoblob' : {
+    'deps': ['blob']
+  },
+  'slickcore': ['jqueryui'],
+  'slickgrid': ['slickcore', 'jquery_drag', 'slickformatters', 'slickeditors']
+}
+});
+
+requirejs(
+["jquery", "model", "controller"],
+function($, model, EmperorController) {
+  var DecompositionModel = model.DecompositionModel;
+
+  var div = $('#emperor-plot');
+
+  var json = $.getJSON('/static/pcoa.json', function(data) {
+    var data = eval("(" +json.responseText + ")");
+
+    var dm, xec;
+
+    function init() {
+      var decomp = data['decompositions'][0];
+
+      // Initialize the DecompositionModel
+      dm = new DecompositionModel(decomp, data['metadata_headers'],
+                                  data['metadata']);
+      // Initialize the EmperorController
+      ec = new EmperorController(dm, "emperor-plot");
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ec.render();
+    }
+    $(window).resize(function() {
+      ec.resize(div.innerWidth(), div.innerHeight());
+    });
+
+    $(function(){
+      init();
+      animate();
+
+      ec.ready = function () {
+        // any other code that needs to be executed when emperor is loaded should
+        // go here
+        ec.loadConfig(data['settings']);
+
+        // find the barcodes of interest and do something with them
+        ec.decViews.scatter.decomp.apply(function(plottable){
+            if (BARCODES.indexOf('10317.' + plottable.name) !== -1) {
+                console.log(plottable)
+            }
+        });
+      }
+    });
+  
+  
+  });
+
+}); // END REQUIRE.JS block
+
+
   </script>
+
+
+
   <style>
     canvas {
       -moz-user-select: none;
@@ -346,6 +506,10 @@ window.onload = function() {
       </div>
     </div>
   </div>
+<hr>
+
+  <div id='emperor-plot' style="position: relative; width:100%; height:500px;">
+  <div class='loading' style="position: absolute;top: 50%;left: 50%;margin-left: -229px; margin-top: -59px; z-index: 10000;height:118px;width:458px;padding:0px"><img src='/static/emperor/img/emperor.png' alt='Emperor resources missing. Expected them to be found in /static/emperor'></div>
 
 <hr>
   <div id="taxa-fold-wrapper" style="width:100%; min-height: 106px; position: relative;">
